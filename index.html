@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>營運甘特圖（KPI版）</title>
+
+<style>
+body {
+    background: #111;
+    color: #fff;
+    font-family: Arial;
+    padding: 20px;
+}
+
+h1 { text-align: center; }
+
+button {
+    margin: 5px;
+    padding: 6px 10px;
+    background: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.header {
+    display: flex;
+    margin-left: 220px;
+}
+
+.month {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    border-right: 1px solid #333;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.label {
+    width: 120px;
+}
+
+input {
+    width: 60px;
+    margin: 0 5px;
+    background: #222;
+    color: white;
+    border: 1px solid #555;
+}
+
+/* timeline */
+.timeline {
+    position: relative;
+    flex: 1;
+    height: 50px;
+    border: 1px solid #333;
+}
+
+/* bar */
+.bar {
+    position: absolute;
+    top: 10px;
+    height: 30px;
+    border-radius: 6px;
+    cursor: grab;
+    overflow: hidden;
+}
+
+.product { background: #2e7d32; }
+.sales { background: #1565c0; }
+.invest { background: #ef6c00; }
+
+/* 達成層 */
+.progress {
+    height: 100%;
+    background: rgba(255,255,255,0.5);
+}
+
+/* 拖拉控制 */
+.handle {
+    width: 6px;
+    background: #fff;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    cursor: ew-resize;
+}
+
+.handle.left { left: 0; }
+.handle.right { right: 0; }
+
+</style>
+</head>
+
+<body>
+
+<h1>品牌營運甘特圖（KPI + 雙色進度）</h1>
+
+<button onclick="addRow('product')">+ 商品</button>
+<button onclick="addRow('sales')">+ 營業額</button>
+<button onclick="addRow('invest')">+ 投資</button>
+
+<!-- 月份 -->
+<div class="header" id="header"></div>
+
+<div id="container"></div>
+
+<script>
+
+// ===== 月份軸 =====
+const header = document.getElementById("header");
+for(let i=1;i<=12;i++){
+    let m = document.createElement("div");
+    m.className = "month";
+    m.innerText = i + "月";
+    header.appendChild(m);
+}
+
+// ===== 新增列 =====
+function addRow(type){
+
+    let row = document.createElement("div");
+    row.className = "row";
+
+    let label = document.createElement("input");
+    label.className = "label";
+    label.value = type;
+
+    let target = document.createElement("input");
+    target.placeholder = "Target";
+
+    let ach = document.createElement("input");
+    ach.placeholder = "Ach";
+
+    let rate = document.createElement("span");
+    rate.innerText = "0%";
+
+    let timeline = document.createElement("div");
+    timeline.className = "timeline";
+
+    let bar = createBar(type, target, ach, rate);
+    timeline.appendChild(bar);
+
+    let del = document.createElement("button");
+    del.innerText = "刪除";
+    del.onclick = ()=> row.remove();
+
+    row.append(label, target, ach, rate, timeline, del);
+    container.appendChild(row);
+}
+
+// ===== 建立 bar =====
+function createBar(type, targetInput, achInput, rateText){
+
+    let bar = document.createElement("div");
+    bar.className = "bar " + type;
+    bar.style.left = "10%";
+    bar.style.width = "30%";
+
+    let progress = document.createElement("div");
+    progress.className = "progress";
+    progress.style.width = "40%"; // 初始
+    bar.appendChild(progress);
+
+    // 控制點
+    let left = document.createElement("div");
+    left.className = "handle left";
+
+    let right = document.createElement("div");
+    right.className = "handle right";
+
+    bar.appendChild(left);
+    bar.appendChild(right);
+
+    // ===== KPI 計算 =====
+    function updateKPI(){
+        let t = +targetInput.value || 0;
+        let a = +achInput.value || 0;
+
+        if(t > 0){
+            let pct = Math.min((a / t) * 100, 100);
+            progress.style.width = pct + "%";
+            rateText.innerText = pct.toFixed(1) + "%";
+        }
+    }
+
+    targetInput.addEventListener("input", updateKPI);
+    achInput.addEventListener("input", updateKPI);
+
+    // ===== 拖拉 =====
+    let isDrag=false, isLeft=false, isRight=false;
+    let startX, startLeft, startWidth;
+
+    bar.addEventListener("mousedown", e=>{
+        if(e.target === left) isLeft = true;
+        else if(e.target === right) isRight = true;
+        else isDrag = true;
+
+        startX = e.clientX;
+        startLeft = bar.offsetLeft;
+        startWidth = bar.offsetWidth;
+    });
+
+    document.addEventListener("mousemove", e=>{
+        let dx = e.clientX - startX;
+
+        if(isDrag){
+            bar.style.left = (startLeft + dx) + "px";
+        }
+        if(isRight){
+            bar.style.width = (startWidth + dx) + "px";
+        }
+        if(isLeft){
+            bar.style.left = (startLeft + dx) + "px";
+            bar.style.width = (startWidth - dx) + "px";
+        }
+    });
+
+    document.addEventListener("mouseup", ()=>{
+        isDrag = isLeft = isRight = false;
+    });
+
+    return bar;
+}
+
+</script>
+
+</body>
+</html>
